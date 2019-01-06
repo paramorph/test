@@ -10,8 +10,6 @@ module.exports = {
   entry: Object.assign({}, config.entry, {
     'hot-bootstrap': [
       'react-hot-loader/patch',
-      'webpack-dev-server/client?http://localhost:8080',
-      'webpack/hot/only-dev-server',
     ],
   }),
 
@@ -27,11 +25,11 @@ module.exports = {
   devtool: 'eval-source-map',
   resolve: config.resolve,
   resolveLoader: config.resolveLoader,
-  externals: config.externals,
 
   devServer: {
-    contentBase: path.join(__dirname, 'dist'),
+    contentBase: path.join(__dirname, '_output'),
     hot: true,
+    inline: false,
     open: true,
     overlay: {
       warnings: true,
@@ -42,16 +40,8 @@ module.exports = {
     },
   },
 
-  module: {
-    noParse: config.module.noParse,
-    rules: config.module.rules,
-  },
-
-  plugins: [
-    new webpack.NamedModulesPlugin(),
-    new webpack.HotModuleReplacementPlugin(),
-  ].concat(
-    config.plugins
-  )
+  module: config.module,
+  plugins: config.plugins,
+  optimization: config.optimization,
 };
 

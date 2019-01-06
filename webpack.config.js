@@ -1,20 +1,16 @@
+
 const path = require('path');
+const webpack = require('webpack');
 
 const IsomorphicHtmlPlugin = require('isomorphic-html-webpack-plugin').default;
-const ExternalReact = require('webpack-external-react');
-
-const { JSDOM, VirtualConsole } = require('jsdom');
-
-const React = require('react');
-const ReactDOM = require('react-dom');
-const PropTypes = require('prop-types');
-const ReactDOMServer = require('react-dom/server');
-const ReactRouterDOM = require('react-router-dom');
 
 module.exports = {
 	entry: {
-    entry: [
-      'paramorph/entry',
+    client: [
+      'paramorph/entry/client',
+    ],
+    server: [
+      'paramorph/entry/server',
     ],
   },
 
@@ -38,10 +34,7 @@ module.exports = {
     },
   },
 
-  externals: ExternalReact.externals,
-
   module: {
-    noParse: ExternalReact.noParse,
     rules: [
       {
         test: path.resolve(__dirname, './_config.yml'),
@@ -61,6 +54,7 @@ module.exports = {
       {
         test: /\.markdown$/,
         use: [
+          'ts-loader',
           'paramorph/loader/markdown',
         ],
       },
@@ -68,28 +62,38 @@ module.exports = {
   },
 
   plugins: [
+    new webpack.NamedModulesPlugin(),
     new IsomorphicHtmlPlugin({
-      entry: 'entry',
+      entry: 'server',
 
       locals: {
         title: 'Paramorph',
-        js: [
-          'https://unpkg.com/react@15/dist/react.js',
-          'https://unpkg.com/prop-types@15.6.0/prop-types.min.js',
-          'https://unpkg.com/react-dom@15/dist/react-dom.js',
-          'https://unpkg.com/react-dom@15.6.1/dist/react-dom-server.min.js',
-          'https://unpkg.com/react-router-dom@4.1.2/umd/react-router-dom.js',
-        ],
-      },
-
-      globals:  {
-        React,
-        PropTypes,
-        ReactDOM,
-        ReactDOMServer,
-        ReactRouterDOM,
       },
     }),
   ],
+
+	optimization: {
+    splitChunks: {
+      chunks: 'async',
+      minSize: 30000,
+      maxSize: 0,
+      minChunks: 1,
+      maxAsyncRequests: 5,
+      maxInitialRequests: 1,
+      automaticNameDelimiter: '~',
+      name: true,
+      cacheGroups: {
+        vendors: {
+          test: /[\/]node_modules[\/]/,
+          priority: -10,
+        },
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+  },
 };
 

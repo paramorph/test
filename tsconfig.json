@@ -26,27 +26,14 @@
     "baseUrl": ".",
     "paths": {
       "@website/*": [ "./*" ],
-      "paramorph/*": [ "../lib/*" ],
-      "paramorph": [ "../lib" ],
     },
     "types": [
-      "node",
-      "webpack",
-      "webpack-env",
       "react",
-      "react-dom",
-      "react-router-dom",
-      "react-hot-loader",
-      "js-yaml",
-      "html-entities"
+      "paramorph"
     ]
   },
   "include": [
-    "../modules.d.ts",
-    "../src/**/*.tsx",
-    "../src/**/*.ts",
-    "./**/*.ts",
-    "./**/*.tsx",
+    "_includes/**/*.tsx"
   ],
   "exclude": [
   ]
