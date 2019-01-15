@@ -18,6 +18,7 @@ module.exports = {
     chunkFilename: '[id]-[contenthash].bundle.js',
     filename: '[name]-[hash].bundle.js',
     path: path.resolve(__dirname, './_output'),
+    publicPath: '/',
     libraryTarget: 'umd',
   },
 
@@ -54,7 +55,6 @@ module.exports = {
       {
         test: /\.markdown$/,
         use: [
-          'ts-loader',
           'paramorph/loader/markdown',
         ],
       },

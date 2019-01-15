@@ -13,21 +13,14 @@ module.exports = {
     ],
   }),
 
-  output: {
-    chunkFilename: '[id].bundle.js',
-    filename: '[name].bundle.js',
-    path: path.resolve(__dirname, './_output'),
-    publicPath: path.resolve(__dirname, '/'),
-    libraryTarget: 'umd',
-  },
-
+  output: config.output,
   target: config.target,
   devtool: 'eval-source-map',
   resolve: config.resolve,
   resolveLoader: config.resolveLoader,
 
   devServer: {
-    contentBase: path.join(__dirname, '_output'),
+    contentBase: path.join(__dirname, '/'),
     hot: true,
     inline: false,
     open: true,

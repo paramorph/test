@@ -7,7 +7,7 @@
     "clean": "rm -rf _output #",
     "build": "webpack --run-dev",
     "clean-build": "npm run clean && npm run build",
-    "dev": "webpack-dev-server --color --config ./hot.config.js",
+    "hot": "webpack-dev-server --color --config ./hot.config.js",
     "serve": "http-server _output",
     "test": "npm run clean-build && npm run serve"
   },
@@ -29,18 +29,16 @@
   "devDependencies": {
     "@types/react": "^16.7.18",
     "http-server": "^0.11.1",
-    "isomorphic-html-webpack-plugin": "^0.4.1",
+    "isomorphic-html-webpack-plugin": "^0.4.5",
     "react": "^16.7.0",
-    "react-html-webpack-plugin": "^1.0.1",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^5.3.2",
     "typescript": "^3.2.2",
     "webpack": "^4.28.3",
     "webpack-cli": "^3.2.0",
-    "webpack-dev-server": "^3.1.14",
-    "webpack-external-react": "^1.1.0"
+    "webpack-dev-server": "^3.1.14"
   },
   "dependencies": {
-    "paramorph": "^2.0.0-beta.4"
+    "paramorph": "^2.0.0-beta.12"
   }
 }

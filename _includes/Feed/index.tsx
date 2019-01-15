@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import { Page, PureComponent } from 'paramorph';
 
-import Tile from '../Tile';
-import { Branch as TocBranch } from '../TableOfContents';
+import Tile from '@website/_includes/Tile';
+import { Branch as TocBranch } from '@website/_includes/TableOfContents';
 
 export interface Props {
   feed : Page[];

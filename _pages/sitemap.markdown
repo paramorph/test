@@ -5,6 +5,7 @@ permalink: "/sitemap"
 tags:
 - sitemap
 - for bot
+feed: false
 ---
 
 <div>

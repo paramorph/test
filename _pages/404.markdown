@@ -1,8 +1,7 @@
 ---
 permalink: /404
 title: Not Found
-date: 0000-01-01 01:24:00 +01:24
-output: false
+date: 0000-01-01 01:24:00 +02:00
 ---
 
 Page of requested address does not exist.
