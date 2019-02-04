@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/react": "^16.7.18",
     "http-server": "^0.11.1",
-    "isomorphic-html-webpack-plugin": "^0.4.5",
+    "isomorphic-html-webpack-plugin": "^0.4.6",
     "react": "^16.7.0",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^5.3.2",
@@ -39,6 +39,6 @@
     "webpack-dev-server": "^3.1.14"
   },
   "dependencies": {
-    "paramorph": "^2.0.0-beta.12"
+    "paramorph": "^2.0.0-beta.19"
   }
 }
