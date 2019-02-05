@@ -9,6 +9,6 @@ feed: false
 ---
 
 <div>
-  <TableOfContents {...data} />
+  <TableOfContents { ...this.props } />
 </div>
 
