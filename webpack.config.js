@@ -35,11 +35,18 @@ module.exports = {
     },
   },
 
+  resolveLoader: {
+    alias: {
+      'config-loader': 'paramorph/loader/config',
+      'markdown-loader': 'paramorph/loader/markdown',
+    },
+  },
+
   module: {
     rules: [
       {
         test: path.resolve(__dirname, './_config.yml'),
-        use: 'paramorph/loader/config',
+        use: 'config-loader',
       },
       {
         enforce: 'pre',
@@ -55,7 +62,7 @@ module.exports = {
       {
         test: /\.markdown$/,
         use: [
-          'paramorph/loader/markdown',
+          'markdown-loader',
         ],
       },
     ],
