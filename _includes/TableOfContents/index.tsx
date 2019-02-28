@@ -16,6 +16,7 @@ export class TableOfContents extends PureComponent<Props, {}> {
       .map(key => paramorph.pages[key] as Page)
       .filter(page => page.categories.length == 0)
       .filter(page => page.url != '/')
+      .filter(page => !(page instanceof Tag))
     ;
     const tags = Object.keys(paramorph.tags)
       .map(key => paramorph.tags[key]);

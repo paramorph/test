@@ -10,6 +10,6 @@ feed: false
 ---
 
 <div>
-  <TableOfContents { ...this.props } />
+  <TableOfContents />
 </div>
 
