@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 
 import { Page, PureComponent } from 'paramorph';
@@ -6,28 +7,146 @@ import Tile from '@website/_includes/Tile';
 import { Branch as TocBranch } from '@website/_includes/TableOfContents';
 
 export interface Props {
-  feed : Page[];
+  pages : Page[];
+  batchSize ?: number;
   respectLimit ?: boolean;
-};
+}
+export interface State {
+  loaded : number;
+  loading : number;
+}
 
-export class Feed extends PureComponent<Props, {}> {
+const DEFAULT_BATCH_SIZE = 10;
+
+export class Feed extends PureComponent<Props, State> {
+  private loadTrigger : HTMLDivElement;
+
+  constructor(props : Props) {
+    super(props);
+
+    const { batchSize = DEFAULT_BATCH_SIZE } = props;
+
+    this.state = {
+      loading: batchSize,
+      loaded: batchSize,
+    };
+
+    this.onScroll = this.onScroll.bind(this);
+  }
+
+  componentWillMount() {
+    const { paramorph, page } = this.context;
+    const { pages, respectLimit = false } = this.props;
+    const { loading } = this.state;
+
+    if (respectLimit) {
+      // no data fetch needed
+      return;
+    }
+    const firstBatch = this.getBatch(0, loading);
+
+    // This will preload first batch of pages on server-side
+    // and result in a harmless re-render on client-side.
+    paramorph.loadData(page.url, () => {
+      return Promise.all(firstBatch.map(page => paramorph.loadPage(page.url)));
+    });
+  }
+
   render() {
     const { paramorph, page } = this.context;
-    const { feed, respectLimit = false, ...props } = this.props;
-
-    const pages = feed
-      .filter(page => page.feed)
-      .sort((a, b) => b.compareTo(a));
+    const { pages, respectLimit = false, ...props } = this.props;
+    const { loading, loaded } = this.state;
 
     if (respectLimit) {
       return <TocBranch pages={ pages } shallow { ...props } />;
     }
+    const data = paramorph.getData<React.ComponentType<{}>[]>(page.url);
 
     return (
       <div>
-        { pages.map(page => (<Tile key={ page.url } page={ page } />)) }
+        { data.map((Content, i) => {
+          const page = pages[i];
+
+          return (
+            <Tile key={ page.url } page={ page } Content={ Content } />
+          );
+        }) }
+        <div ref={ e => this.loadTrigger = e as HTMLDivElement }>
+          { loading !== loaded ? 'Loading...' : null }
+        </div>
       </div>
     );
+  }
+
+  componentDidMount() {
+    window.addEventListener('scroll', this.onScroll);
+
+    this.onScroll();
+  }
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this.onScroll);
+  }
+
+  private onScroll() {
+    if (this.needsMoreContent()) {
+      this.loadNextBatch();
+    }
+  }
+
+  private needsMoreContent() {
+    const { scrollY } = window;
+
+    const offsetTop = this.getOffsetTop(this.loadTrigger);
+    return scrollY >= offsetTop;
+  }
+
+  private loadNextBatch() {
+    const { paramorph, page } = this.context;
+    const { batchSize = DEFAULT_BATCH_SIZE } = this.props;
+    const { loading, loaded } = this.state;
+
+    if (loading !== loaded) {
+      return;
+    }
+
+    const nextLoading = loading + batchSize;
+    const batch = this.getBatch(loaded, nextLoading);
+
+    this.setState(
+      prev => ({ ...prev, loading: nextLoading }),
+      () => {
+        paramorph.loadData(page.url, () => {
+          return Promise.all(batch.map(page => paramorph.loadPage(page.url)))
+            .then(newData => paramorph.getData(page.url).concat(newData))
+          ;
+        }).then(() => {
+          this.setState(
+            prev => ({ ...prev, loaded: nextLoading }),
+            this.onScroll,
+          );
+        });
+      },
+    );
+  }
+
+  private getOffsetTop(elem : HTMLElement) : number {
+    const { offsetParent } = elem;
+
+    const parentOffset = (offsetParent ? this.getOffsetTop(offsetParent as HTMLElement) : 0);
+    return elem.offsetTop + parentOffset;
+  }
+
+  private getBatch(lowerBounds : number, upperBounds : number) : Page[] {
+    const { pages } = this.props;
+
+    if (pages.length <= lowerBounds) {
+      return [];
+    }
+    const length = upperBounds > pages.length
+      ? pages.length - lowerBounds
+      : upperBounds - lowerBounds
+    ;
+    return pages.slice(lowerBounds, upperBounds);
   }
 }
 

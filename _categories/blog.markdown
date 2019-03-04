@@ -12,6 +12,6 @@ role: category
 ---
 
 <div>
-  <Feed feed={ paramorph.collections['Posts'].pages } />
+  <Feed feed={ paramorph.collections['Posts'].pages } batchSize={ 2 } />
 </div>
 
