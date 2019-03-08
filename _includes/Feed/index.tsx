@@ -60,7 +60,7 @@ export class Feed extends PureComponent<Props, State> {
     if (respectLimit) {
       return <TocBranch pages={ pages } shallow { ...props } />;
     }
-    const data = paramorph.getData<React.ComponentType<{}>[]>(page.url);
+    const data = paramorph.data[page.url] as React.ComponentType<{}>[] || [];
 
     return (
       <div>
@@ -112,14 +112,20 @@ export class Feed extends PureComponent<Props, State> {
     const nextLoading = loading + batchSize;
     const batch = this.getBatch(loaded, nextLoading);
 
+    const previousData : React.ComponentType<{}>[] = paramorph.data[page.url] || [];
+    const dataLoaded = paramorph.loadData<React.ComponentType<{}>[]>(
+      page.url,
+      () => {
+        return Promise.all(batch.map(page => paramorph.loadPage(page.url)))
+          .then(newData => previousData.concat(newData))
+        ;
+      },
+    );
+
     this.setState(
       prev => ({ ...prev, loading: nextLoading }),
       () => {
-        paramorph.loadData(page.url, () => {
-          return Promise.all(batch.map(page => paramorph.loadPage(page.url)))
-            .then(newData => paramorph.getData(page.url).concat(newData))
-          ;
-        }).then(() => {
+        dataLoaded.then(() => {
           this.setState(
             prev => ({ ...prev, loaded: nextLoading }),
             this.onScroll,

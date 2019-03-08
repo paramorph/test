@@ -17,7 +17,6 @@ export class Tile extends PureComponent<Props, {}> {
         <h1><Link to={ page.url }>{ page.title }</Link></h1>
 
         <Content { ...props } />
-
         <p>
           <Link to={ page.url }>Read More</Link>
         </p>
