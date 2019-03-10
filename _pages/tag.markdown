@@ -5,6 +5,6 @@ output: false
 ---
 
 <div>
-  <Feed feed={ page.pages } />
+  <Feed pages={ page.pages } />
 </div>
 

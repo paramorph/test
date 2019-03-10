@@ -24,7 +24,7 @@ export class Feed extends PureComponent<Props, State> {
   constructor(props : Props) {
     super(props);
 
-    const { batchSize = DEFAULT_BATCH_SIZE } = props;
+    const { batchSize = Math.max(props.pages.length, DEFAULT_BATCH_SIZE) } = props;
 
     this.state = {
       loading: batchSize,
@@ -43,7 +43,7 @@ export class Feed extends PureComponent<Props, State> {
       // no data fetch needed
       return;
     }
-    const firstBatch = this.getBatch(0, loading);
+    const firstBatch = pages.slice(0, loading);
 
     // This will preload first batch of pages on server-side
     // and result in a harmless re-render on client-side.
@@ -61,6 +61,10 @@ export class Feed extends PureComponent<Props, State> {
       return <TocBranch pages={ pages } shallow { ...props } />;
     }
     const data = paramorph.data[page.url] as React.ComponentType<{}>[] || [];
+
+    if (data.length > pages.length) {
+      throw new Error(`${page.url}: pages.length (${pages.length}) < data.length (${data.length})`);
+    }
 
     return (
       <div>
@@ -88,7 +92,7 @@ export class Feed extends PureComponent<Props, State> {
   }
 
   private onScroll() {
-    if (this.needsMoreContent()) {
+    if (this.needsMoreContent() && !this.isAtEnd()) {
       this.loadNextBatch();
     }
   }
@@ -102,15 +106,15 @@ export class Feed extends PureComponent<Props, State> {
 
   private loadNextBatch() {
     const { paramorph, page } = this.context;
-    const { batchSize = DEFAULT_BATCH_SIZE } = this.props;
+    const { pages, batchSize = DEFAULT_BATCH_SIZE } = this.props;
     const { loading, loaded } = this.state;
 
     if (loading !== loaded) {
       return;
     }
 
-    const nextLoading = loading + batchSize;
-    const batch = this.getBatch(loaded, nextLoading);
+    const nextLoading = Math.min(loading + batchSize, pages.length);
+    const batch = pages.slice(loaded, nextLoading);
 
     const previousData : React.ComponentType<{}>[] = paramorph.data[page.url] || [];
     const dataLoaded = paramorph.loadData<React.ComponentType<{}>[]>(
@@ -142,17 +146,11 @@ export class Feed extends PureComponent<Props, State> {
     return elem.offsetTop + parentOffset;
   }
 
-  private getBatch(lowerBounds : number, upperBounds : number) : Page[] {
+  private isAtEnd() {
+    const { loading } = this.state;
     const { pages } = this.props;
 
-    if (pages.length <= lowerBounds) {
-      return [];
-    }
-    const length = upperBounds > pages.length
-      ? pages.length - lowerBounds
-      : upperBounds - lowerBounds
-    ;
-    return pages.slice(lowerBounds, upperBounds);
+    return loading === pages.length;
   }
 }
 
