@@ -49,6 +49,9 @@ export class Feed extends PureComponent<Props, State> {
     // and result in a harmless re-render on client-side.
     paramorph.loadData(page.url, () => {
       return Promise.all(firstBatch.map(page => paramorph.loadPage(page.url)));
+    })
+    .then(() => {
+      this.forceUpdate();
     });
   }
 
