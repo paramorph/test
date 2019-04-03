@@ -10,6 +10,6 @@ align="right" />][david-status-dev]
 [david-status]: https://david-dm.org/paramorph/test
 [david-status-dev]: https://david-dm.org/paramorph/test?type=dev
 
-paramorph.github.io
+[paramorph.github.io](https://paramorph.github.io/)
 
 
