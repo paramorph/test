@@ -7,7 +7,6 @@ tags:
 - contact
 - info
 category: Blog
-feed: false
 ---
 
 ## Maciej Chałapuk
