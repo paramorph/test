@@ -1,161 +1,322 @@
 
 import * as React from 'react';
 
-import { Page, PureComponent } from 'paramorph';
+import { Post, PureComponent, Link } from 'paramorph';
 
 import Tile from '@website/_includes/Tile';
 import { Branch as TocBranch } from '@website/_includes/TableOfContents';
 
 export interface Props {
-  pages : Page[];
+  posts : Post[];
+  preloadSize ?: number;
   batchSize ?: number;
   respectLimit ?: boolean;
-}
+};
+
 export interface State {
-  loaded : number;
   loading : number;
+  loaded : number;
 }
 
-const DEFAULT_BATCH_SIZE = 10;
+const DEFAULT_PRELOAD_SIZE = 20;
+const DEFAULT_BATCH_SIZE = 5;
+const PAGE_PATH_PARAM = 'pageNumber';
+const PAGE_PARAM_FORMAT = '(-\\d+-)';
 
 export class Feed extends PureComponent<Props, State> {
-  private loadTrigger : HTMLDivElement;
+  private loadTrigger : HTMLDivElement | null = null;
 
   constructor(props : Props) {
     super(props);
 
-    const { batchSize = Math.max(props.pages.length, DEFAULT_BATCH_SIZE) } = props;
-
+    const preloadSize = Math.min(
+      props.preloadSize || props.batchSize || DEFAULT_PRELOAD_SIZE,
+      props.posts.length,
+    );
     this.state = {
-      loading: batchSize,
-      loaded: batchSize,
+      loading: preloadSize,
+      loaded: preloadSize,
     };
 
+    this.onContent = this.onContent.bind(this);
     this.onScroll = this.onScroll.bind(this);
   }
 
   componentWillMount() {
-    const { paramorph, page } = this.context;
-    const { pages, respectLimit = false } = this.props;
-    const { loading } = this.state;
+    const { post, requestParameterizedRender } = this.context;
 
-    if (respectLimit) {
-      // no data fetch needed
+    if (!this.hasPathParam()) {
+      console.error(`'${
+        PAGE_PATH_PARAM}${PAGE_PARAM_FORMAT
+      }' path param not found in pathSpec: '${
+        post.pathSpec
+      }'`);
       return;
     }
-    const firstBatch = pages.slice(0, loading);
+    // pages in url are numbered starting from 1
+    const lastPageNumber = this.getLastPageNumber() + 1;
 
-    // This will preload first batch of pages on server-side
-    // and result in a harmless re-render on client-side.
-    paramorph.loadData(page.url, () => {
-      return Promise.all(firstBatch.map(page => paramorph.loadPage(page.url)));
-    })
-    .then(() => {
-      this.forceUpdate();
-    });
+    // first page is already rendered
+    for (let i = 2; i <= lastPageNumber + 1; ++i) {
+      requestParameterizedRender({ [PAGE_PATH_PARAM]: `-${i}-` });
+    }
   }
 
   render() {
-    const { paramorph, page } = this.context;
-    const { pages, respectLimit = false, ...props } = this.props;
+    const { paramorph, post } = this.context;
+    const { posts, respectLimit = false, ...props } = this.props;
     const { loading, loaded } = this.state;
 
     if (respectLimit) {
-      return <TocBranch pages={ pages } shallow { ...props } />;
+      return <TocBranch posts={ posts.slice(0, post.limit) } shallow { ...props } />;
     }
-    const data = paramorph.data[page.url] as React.ComponentType<{}>[] || [];
-
-    if (data.length > pages.length) {
-      throw new Error(`${page.url}: pages.length (${pages.length}) < data.length (${data.length})`);
-    }
+    const content = this.getContent();
 
     return (
       <div>
-        { data.map((Content, i) => {
-          const page = pages[i];
+        { this.renderNextLink() }
 
+        { content.map(({ post, Content }) => {
           return (
-            <Tile key={ page.url } page={ page } Content={ Content } />
+            <Tile key={ post.url } post={ post } Content={ Content } />
           );
         }) }
-        <div ref={ e => this.loadTrigger = e as HTMLDivElement }>
-          { loading !== loaded ? 'Loading...' : null }
+        <div ref={ e => this.loadTrigger = e }>
+          { this.isLoading() ? 'Loading...' : null }
         </div>
+
+        { this.renderPreviousLink() }
       </div>
     );
   }
 
   componentDidMount() {
+    const { paramorph, post } = this.context;
+    const { respectLimit = false } = this.props;
+    const { loaded } = this.state;
+
+    if (!respectLimit) {
+      paramorph.addContentListener(this.onContent);
+    }
     window.addEventListener('scroll', this.onScroll);
 
-    this.onScroll();
+    this.maybeLoadInitialBatch();
   }
   componentWillUnmount() {
+    const { paramorph } = this.context;
+    const { respectLimit = false } = this.props;
+
+    if (!respectLimit) {
+      paramorph.removeContentListener(this.onContent);
+    }
     window.removeEventListener('scroll', this.onScroll);
   }
 
+  private renderPreviousLink() {
+    if (this.isOnLastPage() || !this.hasPathParam()) {
+      return null;
+    }
+    return (
+      <p>
+        <Link to={ this.getPreviousUrl() }>
+          Previous Posts -&gt;
+        </Link>
+      </p>
+    );
+  }
+  private renderNextLink() {
+    if (this.isOnFirstPage() || !this.hasPathParam()) {
+      return null;
+    }
+    return (
+      <p>
+        <Link to={ this.getNextUrl() }>
+          &lt;- Next Posts
+        </Link>
+      </p>
+    );
+  }
+
+  private getContent() {
+    const { paramorph } = this.context;
+    const { posts } = this.props;
+    const { loading } = this.state;
+
+    const content : {
+      post : Post;
+      Content: React.ComponentType<{}>;
+    }[] = [];
+
+    const pageOffset = this.getPageOffset();
+    const pagePosts = posts.slice(pageOffset, pageOffset + loading);
+
+    for (const post of pagePosts) {
+      const Content = paramorph.content[post.url];
+      if (Content === undefined) {
+        break;
+      }
+      content.push({ post, Content });
+    }
+    return content;
+  }
+
   private onScroll() {
-    if (this.needsMoreContent() && !this.isAtEnd()) {
+    if (this.needsMoreContent() && !this.isAtEnd() && !this.isLoading()) {
       this.loadNextBatch();
     }
   }
 
-  private needsMoreContent() {
-    const { scrollY } = window;
+  private onContent() {
+    if (!this.isLoading()) {
+      // not loaded by us
+      return;
+    }
+    const { loaded } = this.state;
+    const content = this.getContent();
 
-    const offsetTop = this.getOffsetTop(this.loadTrigger);
-    return scrollY >= offsetTop;
+    if (content.length > loaded) {
+      this.setState(prev => ({ ...prev, loaded: content.length }));
+    }
+  }
+
+  private needsMoreContent() {
+    const { scrollY, innerHeight } = window;
+
+    if (!this.loadTrigger) {
+      return false;
+    }
+    const offsetTop = getOffsetTop(this.loadTrigger);
+    return scrollY + innerHeight >= offsetTop;
+  }
+
+  private isLoading() {
+    const { loading, loaded } = this.state;
+
+    return loading !== loaded;
+  }
+
+  private maybeLoadInitialBatch() {
+    const { paramorph } = this.context;
+    const { loaded } = this.state;
+    const { posts } = this.props;
+
+    const content = this.getContent();
+    if (content.length === loaded) {
+      this.onScroll();
+      return;
+    }
+    const pageOffset = this.getPageOffset();
+    const loading = Math.min(posts.length - pageOffset, this.state.loading);
+
+    this.setState(
+      prev => ({ ...prev, loading, loaded: content.length }),
+      () => {
+        const pageOffset = this.getPageOffset();
+
+        const batch = posts.slice(pageOffset, pageOffset + loading);
+        batch.map(post => paramorph.loadContent(post.url));
+      },
+    );
   }
 
   private loadNextBatch() {
-    const { paramorph, page } = this.context;
-    const { pages, batchSize = DEFAULT_BATCH_SIZE } = this.props;
-    const { loading, loaded } = this.state;
+    const { paramorph, post } = this.context;
+    const { posts, batchSize = DEFAULT_BATCH_SIZE } = this.props;
+    const { loading } = this.state;
 
-    if (loading !== loaded) {
-      return;
-    }
-
-    const nextLoading = Math.min(loading + batchSize, pages.length);
-    const batch = pages.slice(loaded, nextLoading);
-
-    const previousData : React.ComponentType<{}>[] = paramorph.data[page.url] || [];
-    const dataLoaded = paramorph.loadData<React.ComponentType<{}>[]>(
-      page.url,
-      () => {
-        return Promise.all(batch.map(page => paramorph.loadPage(page.url)))
-          .then(newData => previousData.concat(newData))
-        ;
-      },
-    );
+    const nextLoading = Math.min(loading + batchSize, posts.length);
 
     this.setState(
       prev => ({ ...prev, loading: nextLoading }),
       () => {
-        dataLoaded.then(() => {
-          this.setState(
-            prev => ({ ...prev, loaded: nextLoading }),
-            this.onScroll,
-          );
-        });
+        const pageOffset = this.getPageOffset();
+
+        const batch = posts.slice(pageOffset + loading, pageOffset + nextLoading);
+        batch.map(post => paramorph.loadContent(post.url));
       },
     );
   }
 
-  private getOffsetTop(elem : HTMLElement) : number {
-    const { offsetParent } = elem;
-
-    const parentOffset = (offsetParent ? this.getOffsetTop(offsetParent as HTMLElement) : 0);
-    return elem.offsetTop + parentOffset;
-  }
-
   private isAtEnd() {
     const { loading } = this.state;
-    const { pages } = this.props;
+    const { posts } = this.props;
 
-    return loading === pages.length;
+    return loading === posts.length;
+  }
+
+  private isOnFirstPage() {
+    return this.getPageNumber() === 0;
+  }
+  private isOnLastPage() {
+    return this.getPageNumber() === this.getLastPageNumber();
+  }
+
+  private getPageNumber() {
+    const { pathParams } = this.context;
+
+    // pages in url are numbered starting from 1
+    const pageNumber = pathParams.get('pageNumber') || '-1-';
+    return Number.parseInt(pageNumber.replace(/[^\d]+/g, '')) - 1;
+  }
+  private getLastPageNumber() {
+    const { posts } = this.props;
+    const pageSize = this.getPageSize();
+
+    return Math.round(posts.length / pageSize)
+  }
+  private getPageSize() {
+    const { preloadSize = DEFAULT_PRELOAD_SIZE } = this.props;
+
+    return preloadSize;
+  }
+  private getPageOffset() {
+    const pageSize = this.getPageSize();
+    const pageNumber = this.getPageNumber();
+    const offset = pageSize * pageNumber;
+
+    return offset;
+  }
+
+  private getNextUrl() {
+    const { pathParams, post } = this.context;
+
+    // pages in url are numbered starting from 1
+    const pageNumber = this.getPageNumber() + 1;
+
+    if (pageNumber === 2) {
+      return post.url;
+    } else {
+      return this.createUrl(pageNumber - 1);
+    }
+  }
+
+  private getPreviousUrl() {
+    const { pathParams } = this.context;
+
+    // pages in url are numbered starting from 1
+    const pageNumber = this.getPageNumber() + 1;
+    return this.createUrl(pageNumber + 1);
+  }
+
+  private createUrl(pageNumber : number) {
+    const { post } = this.context;
+
+    return post.pathSpec.replace(`:${PAGE_PATH_PARAM}${PAGE_PARAM_FORMAT}?`, `-${pageNumber}-`);
+  }
+
+  private hasPathParam() {
+    const { post } = this.context;
+
+    return post.pathSpec.indexOf(`:${PAGE_PATH_PARAM}${PAGE_PARAM_FORMAT}?/`) !== -1;
   }
 }
 
 export default Feed;
+
+function getOffsetTop(elem : HTMLElement) : number {
+  const { offsetParent } = elem;
+
+  const parentOffset = (offsetParent ? getOffsetTop(offsetParent as HTMLElement) : 0);
+  return elem.offsetTop + parentOffset;
+}
 

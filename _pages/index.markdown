@@ -1,7 +1,7 @@
 ---
 title: Paramorph - Isomorphic Static Website Generator
 date: 2018-02-03 15:58:00 +02:00
-permalink: "/"
+pathSpec: "/"
 tags:
 - paramorph
 - isomorphic

@@ -1,10 +1,10 @@
 
 import * as React from 'react';
 
-import { Page, PureComponent, Link, ContextTypes } from 'paramorph';
+import { Post, PureComponent, Link, ContextTypes } from 'paramorph';
 
 export interface Props {
-  page : Page;
+  post : Post;
   Content : React.ComponentType<any>;
 }
 
@@ -12,24 +12,24 @@ export class Tile extends PureComponent<Props, {}> {
   static readonly childContextTypes = ContextTypes;
 
   getChildContext() {
-    const { page } = this.props;
+    const { post } = this.props;
 
     return {
       ...this.context,
-      page,
+      post,
     }
   }
 
   render() {
-    const { page, Content, ...props } = this.props;
+    const { post, Content, ...props } = this.props;
 
     return (
       <article>
-        <h1><Link to={ page.url }>{ page.title }</Link></h1>
+        <h1><Link to={ post.url }>{ post.title }</Link></h1>
 
         <Content respectLimit={ true } />
         <p>
-          <Link to={ page.url }>Read More</Link>
+          <Link to={ post.url }>Read More</Link>
         </p>
       </article>
     );
@@ -38,14 +38,14 @@ export class Tile extends PureComponent<Props, {}> {
 
 export default Tile;
 
-function maybeRenderImage(page : Page) {
-  if (!page.image) {
+function maybeRenderImage(post : Post) {
+  if (!post.image) {
     return null;
   }
   return (
     <p>
-      <Link to={ page.url }>
-        <img src={ page.image } alt={ page.title } />
+      <Link to={ post.url }>
+        <img src={ post.image } alt={ post.title } />
       </Link>
     </p>
   );

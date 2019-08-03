@@ -1,7 +1,7 @@
 
 import * as React from 'react';
 
-import { Paramorph, Page, Category, Tag, Link, PureComponent } from 'paramorph';
+import { Paramorph, Post, Category, Tag, Link, PureComponent } from 'paramorph';
 
 export interface Props {
   respectLimit ?: boolean;
@@ -12,11 +12,11 @@ export class TableOfContents extends PureComponent<Props, {}> {
     const { respectLimit = false } = this.props;
     const { paramorph } = this.context;
 
-    const topLevel = Object.keys(paramorph.pages)
-      .map(key => paramorph.pages[key] as Page)
-      .filter(page => page.categories.length == 0)
-      .filter(page => page.url != '/')
-      .filter(page => !(page instanceof Tag))
+    const topLevel = Object.keys(paramorph.posts)
+      .map(key => paramorph.posts[key] as Post)
+      .filter(post => post.categories.length == 0)
+      .filter(post => post.url != '/')
+      .filter(post => !(post instanceof Tag))
     ;
     const tags = Object.keys(paramorph.tags)
       .map(key => paramorph.tags[key]);
@@ -24,15 +24,15 @@ export class TableOfContents extends PureComponent<Props, {}> {
     return (
       <ul>
         <li key={ '/' }>
-          <Link to='/'>{ (paramorph.pages['/'] as Page).title }</Link>
-          <Branch pages={ topLevel } shallow={ respectLimit } ellipsis={ respectLimit } />
+          <Link to='/'>{ (paramorph.posts['/'] as Post).title }</Link>
+          <Branch posts={ topLevel } shallow={ respectLimit } ellipsis={ respectLimit } />
         </li>
       {
         !respectLimit
-        ? tags.map(({ title, url, pages }: Tag) => (
+        ? tags.map(({ title, url, posts }: Tag) => (
         <li key={ url }>
           <Link to={ url }>{ title }</Link>
-          <Branch pages={ pages } shallow />
+          <Branch posts={ posts } shallow />
         </li>
         ))
         : null
@@ -45,33 +45,33 @@ export class TableOfContents extends PureComponent<Props, {}> {
 export default TableOfContents;
 
 export interface BranchProps {
-  pages : Page[];
+  posts : Post[];
   shallow ?: boolean;
   ellipsis ?: boolean;
 }
 
 export function Branch({
-  pages,
+  posts,
   shallow = false,
   ellipsis = false
 } : BranchProps) : React.ReactElement<any> {
 
-  const output = pages.filter(page => page.output);
-  const categories = output.filter(page => page instanceof Category) as Category[];
-  const notCategories = output.filter(page => !(page instanceof Category));
+  const output = posts.filter(post => post.output);
+  const categories = output.filter(post => post instanceof Category) as Category[];
+  const notCategories = output.filter(post => !(post instanceof Category));
 
   return (
     <ul>
   {
-    categories.map(({ url, title, pages } : Category) => (
+    categories.map(({ url, title, posts } : Category) => (
       <li key={ url }>
         <Link to={ url }>{ title }</Link>
-        { !shallow ? <Branch pages={ pages } /> : null }
+        { !shallow ? <Branch posts={ posts } /> : null }
       </li>
     ))
   }
   {
-    notCategories.map(({ title, url } : Page) => (
+    notCategories.map(({ title, url } : Post) => (
       <li key={ url }>
         <Link to={ url }>{ title }</Link>
       </li>

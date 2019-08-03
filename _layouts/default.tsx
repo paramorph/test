@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 
 import { Tag, PureComponent, Link } from 'paramorph';
@@ -8,7 +9,7 @@ export interface Props {
 
 export class DefaultLayout extends PureComponent<Props, {}> {
   render() {
-    const { paramorph, page } = this.context;
+    const { paramorph, post } = this.context;
     const { children } = this.props;
 
     return (
@@ -25,9 +26,9 @@ export class DefaultLayout extends PureComponent<Props, {}> {
         <div className='main'>
           <main>
             <div className='title'>
-              <h1><Link to={ page.url }>{ page.title }</Link></h1>
+              <h1><Link to={ post.url }>{ post.title }</Link></h1>
               <ul className='tags'>
-              { page.tags
+              { post.tags
                 .map(title => paramorph.tags[title] as Tag)
                 .map(({ title, url } : Tag) => (
                   <li key={ url }><Link to={ url }>{ title }</Link></li>
@@ -45,7 +46,7 @@ export class DefaultLayout extends PureComponent<Props, {}> {
             { paramorph.config.menu.map(entry => (
               <li key={ entry.url }><Link to={ entry.url }>{ entry.short }</Link></li>
             )) }
-              <li><Link to='/sitemap'>Sitemap</Link></li>
+              <li><Link to='/sitemap/'>Sitemap</Link></li>
             </ul>
           </nav>
         </div>

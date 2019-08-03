@@ -46,7 +46,12 @@ module.exports = {
     rules: [
       {
         test: path.resolve(__dirname, './_config.yml'),
-        use: 'config-loader',
+        loader: 'config-loader',
+        options: {
+          policy: {
+            missingDescription: 'warning',
+          },
+        },
       },
       {
         enforce: 'pre',

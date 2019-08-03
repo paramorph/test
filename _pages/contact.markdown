@@ -1,7 +1,7 @@
 ---
 title: Contact
 date: 2018-02-03 15:58:00 +02:00
-permalink: "/contact"
+pathSpec: "/contact"
 tags:
 - paramorph
 - contact
